@@ -24,15 +24,18 @@ class MarketDataProvider with ChangeNotifier {
   // 7. Set _isLoading = false
   // 8. Call notifyListeners() again
   
-  Future<void> loadMarketData() async {
+  Future<void> loadMarketData({bool silent = false}) async {
+    if (!silent) {
     _isLoading = true;
+    }
+
     _error = null;
     notifyListeners();
     
     try {
       // TODO: Implement API call and data conversion
-      // final data = await _apiService.getMarketData();
-      // _marketData = data.map((json) => MarketData.fromJson(json)).toList();
+      final data = await _apiService.getMarketData();
+      _marketData = data.map((json) => MarketData.fromJson(json)).toList();
     } catch (e) {
       _error = e.toString();
     } finally {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:pulsenow_flutter/utils/layout.dart';
 import '../providers/market_data_provider.dart';
 
 class MarketDataScreen extends StatefulWidget {
@@ -10,51 +12,98 @@ class MarketDataScreen extends StatefulWidget {
 }
 
 class _MarketDataScreenState extends State<MarketDataScreen> {
+  final provider = MarketDataProvider();
   @override
   void initState() {
     super.initState();
-    // TODO: Load market data when screen initializes
-    // Provider.of<MarketDataProvider>(context, listen: false).loadMarketData();
+    provider.loadMarketData();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MarketDataProvider>(
-      builder: (context, provider, child) {
-        // TODO: Implement the UI
-        // Show loading indicator when provider.isLoading is true
-        // Show error message when provider.error is not null
-        // Show list of market data when provider.marketData is available
-        // Each list item should show:
-        //   - Symbol (e.g., "BTC/USD")
-        //   - Price (formatted as currency)
-        //   - 24h change (with color: green for positive, red for negative)
-        // Implement pull-to-refresh using RefreshIndicator
-        
-        if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        if (provider.error != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Error: ${provider.error}'),
-                ElevatedButton(
-                  onPressed: () => provider.loadMarketData(),
-                  child: const Text('Retry'),
-                ),
-              ],
+    return ChangeNotifierProvider.value(
+      value: provider,
+      child: Consumer<MarketDataProvider>(
+        builder: (context, provider, child) {
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Builder(
+              key: ValueKey('${provider.isLoading}-${provider.error}'),
+              builder: (context) {
+                if (provider.isLoading) {
+                  return const Center(
+                    key: ValueKey('loading'),
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (provider.error != null) {
+                  return Center(
+                    key: const ValueKey('error'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Error: ${provider.error}'),
+                        ElevatedButton(
+                          onPressed: () => provider.loadMarketData(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async => provider.loadMarketData(silent: true),
+                  child: ListView.separated(
+                    separatorBuilder: (context, index) => const Divider(
+                      height: 1,
+                    ),
+                    itemCount: provider.marketData.length,
+                    itemBuilder: (context, index) {
+                      final item = provider.marketData[index];
+                      Color textColor = Colors.black;
+                      if (item.change24h != null) {
+                        final isPositive = item.change24h! >= 0.0;
+                        textColor = isPositive ? Colors.green : Colors.red;
+                      }
+
+                      return ListTile(
+                        key: ValueKey(item.symbol),
+                        title: Text(item.symbol ?? '-'),
+                        subtitle: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          layoutBuilder: centerLeftLayoutBuilder,
+                          child: Text(
+                            key: ValueKey(item.price),
+                            item.price != null
+                                ? NumberFormat.currency(
+                                        symbol: '\$', decimalDigits: 2)
+                                    .format(item.price!)
+                                : '-',
+                            style: TextStyle(color: textColor),
+                          ),
+                        ),
+                        trailing: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          layoutBuilder: centerLeftLayoutBuilder,
+                          child: Text(
+                            key: ValueKey(item.change24h),
+                            item.change24h != null
+                                ? '${item.change24h!.toStringAsFixed(2)}%'
+                                : '-',
+                            style: TextStyle(color: textColor),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           );
-        }
-        
-        // TODO: Replace this placeholder with actual list implementation
-        return const Center(
-          child: Text('Market Data Screen - To be implemented'),
-        );
-      },
+        },
+      ),
     );
   }
 }
