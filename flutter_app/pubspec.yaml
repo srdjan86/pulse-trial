@@ -21,6 +21,7 @@ dependencies:
   
   # Utilities
   intl: ^0.18.1
+  shared_preferences: ^2.2.2
 
   web_socket_channel: ^3.0.3
 
