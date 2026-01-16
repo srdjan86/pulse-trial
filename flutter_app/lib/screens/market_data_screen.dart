@@ -16,7 +16,13 @@ class _MarketDataScreenState extends State<MarketDataScreen> {
   @override
   void initState() {
     super.initState();
-    provider.loadMarketData();
+    provider.init();
+  }
+
+  @override
+  void dispose() {
+    provider.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,13 +92,14 @@ class _MarketDataScreenState extends State<MarketDataScreen> {
                         ),
                         trailing: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
-                          layoutBuilder: centerLeftLayoutBuilder,
+                          layoutBuilder: centerRightLayoutBuilder,
                           child: Text(
                             key: ValueKey(item.change24h),
                             item.change24h != null
                                 ? '${item.change24h!.toStringAsFixed(2)}%'
                                 : '-',
-                            style: TextStyle(color: textColor),
+                            style: TextStyle(
+                                color: textColor, fontWeight: FontWeight.bold),
                           ),
                         ),
                       );

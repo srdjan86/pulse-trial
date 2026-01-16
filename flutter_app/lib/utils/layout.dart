@@ -12,3 +12,16 @@ Widget centerLeftLayoutBuilder(
     ],
   );
 }
+
+Widget centerRightLayoutBuilder(
+  Widget? currentChild,
+  List<Widget> previousChildren,
+) {
+  return Stack(
+    alignment: Alignment.centerRight,
+    children: <Widget>[
+      ...previousChildren,
+      if (currentChild != null) currentChild,
+    ],
+  );
+}

@@ -22,4 +22,30 @@ class MarketData {
       volume: json['volume'],
     );
   }
+
+  factory MarketData.fromWebSocketJson(Map<String, dynamic> json) {
+    return MarketData(
+      symbol: json['symbol'],
+      price: _parseDouble(json['price']),
+      change24h: _parseDouble(json['change24h']),
+      changePercent24h: _parseDouble(json['changePercent24h']),
+      volume: _parseInt(json['volume']),
+    );
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
 }
