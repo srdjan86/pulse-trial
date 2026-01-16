@@ -15,6 +15,8 @@ class MarketDataProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String? _errorCode;
+  // Used to show a snackbar message to the user when an error occurs
+  // but we still have the data in the cache.
   String? _snackbarMessage;
   StreamSubscription<Map<String, dynamic>>? _webSocketSubscription;
 
@@ -51,6 +53,7 @@ class MarketDataProvider with ChangeNotifier {
     try {
       final data = await _apiService.getMarketData();
       _marketData = data.map((json) => MarketData.fromJson(json)).toList();
+      // In real-world application, this would happen in repository layer
       _cacheService.saveMarketData(_marketData);
     } on AppException catch (e) {
       if (_marketData.isEmpty) {
