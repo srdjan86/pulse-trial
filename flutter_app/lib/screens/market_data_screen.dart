@@ -13,86 +13,85 @@ class MarketDataScreen extends StatefulWidget {
 }
 
 class _MarketDataScreenState extends State<MarketDataScreen> {
-  final provider = MarketDataProvider();
   @override
   void initState() {
     super.initState();
-    provider.init();
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      context.read<MarketDataProvider>().init();
+    });
   }
 
   @override
   void dispose() {
-    provider.dispose();
+    context.read<MarketDataProvider>().dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: provider,
-      child: Consumer<MarketDataProvider>(
-        builder: (context, provider, child) {
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Builder(
-              key: ValueKey('${provider.isLoading}-${provider.error}'),
-              builder: (context) {
-                if (provider.isLoading) {
-                  return const Center(
-                    key: ValueKey('loading'),
-                    child: CircularProgressIndicator(),
-                  );
-                }
+    return Consumer<MarketDataProvider>(
+      builder: (context, provider, child) {
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Builder(
+            key: ValueKey('${provider.isLoading}-${provider.error}'),
+            builder: (context) {
+              if (provider.isLoading) {
+                return const Center(
+                  key: ValueKey('loading'),
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-                if (provider.error != null) {
-                  return Center(
-                    key: const ValueKey('error'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            provider.errorCode == 'NO_CONNECTION'
-                                ? Icons.wifi_off
-                                : Icons.error_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            provider.error!,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => provider.loadMarketData(),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
+              if (provider.error != null) {
+                return Center(
+                  key: const ValueKey('error'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          provider.errorCode == 'NO_CONNECTION'
+                              ? Icons.wifi_off
+                              : Icons.error_outline,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          provider.error!,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => provider.loadMarketData(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async => provider.loadMarketData(silent: true),
-                  child: ListView.separated(
-                    separatorBuilder: (context, index) => const Divider(
-                      height: 1,
-                    ),
-                    itemCount: provider.marketData.length,
-                    itemBuilder: (context, index) {
-                      return _MarketDataItem(item: provider.marketData[index]);
-                    },
                   ),
                 );
-              },
-            ),
-          );
-        },
-      ),
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => provider.loadMarketData(silent: true),
+                child: ListView.separated(
+                  separatorBuilder: (context, index) => const Divider(
+                    height: 1,
+                  ),
+                  itemCount: provider.marketData.length,
+                  itemBuilder: (context, index) {
+                    return _MarketDataItem(item: provider.marketData[index]);
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
