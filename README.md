@@ -2,6 +2,8 @@
 
 Completed in ~80 minutes.
 
+Flutter version used with fvm 3.35.4
+
 ## ✅ Required Features
 - API integration with error handling
 - MarketData model with null safety
