@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:pulsenow_flutter/utils/constants.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import '../utils/constants.dart';
 
 class WebSocketService {
   WebSocketChannel? _channel;
