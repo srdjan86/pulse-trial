@@ -48,4 +48,14 @@ class MarketData {
     if (value is String) return int.tryParse(value);
     return null;
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'symbol': symbol,
+      'price': price,
+      'change24h': change24h,
+      'changePercent24h': changePercent24h,
+      'volume': volume,
+    };
+  }
 }

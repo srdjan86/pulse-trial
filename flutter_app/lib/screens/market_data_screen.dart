@@ -16,8 +16,7 @@ class _MarketDataScreenState extends State<MarketDataScreen> {
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MarketDataProvider>().init();
     });
   }
@@ -30,67 +29,101 @@ class _MarketDataScreenState extends State<MarketDataScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MarketDataProvider>(
-      builder: (context, provider, child) {
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Builder(
-            key: ValueKey('${provider.isLoading}-${provider.error}'),
-            builder: (context) {
-              if (provider.isLoading) {
-                return const Center(
-                  key: ValueKey('loading'),
-                  child: CircularProgressIndicator(),
-                );
-              }
+    return Stack(
+      children: [
+        Consumer<MarketDataProvider>(
+          builder: (context, provider, child) {
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Builder(
+                key: ValueKey('${provider.isLoading}-${provider.error}'),
+                builder: (context) {
+                  if (provider.isLoading) {
+                    return const Center(
+                      key: ValueKey('loading'),
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-              if (provider.error != null) {
-                return Center(
-                  key: const ValueKey('error'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          provider.errorCode == 'NO_CONNECTION'
-                              ? Icons.wifi_off
-                              : Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
+                  if (provider.error != null && provider.marketData.isEmpty) {
+                    return Center(
+                      key: const ValueKey('error'),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              provider.errorCode == 'NO_CONNECTION'
+                                  ? Icons.wifi_off
+                                  : Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              provider.error!,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: () => provider.loadMarketData(),
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          provider.error!,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => provider.loadMarketData(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async =>
+                        provider.loadMarketData(silent: true),
+                    child: ListView.separated(
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                      ),
+                      itemCount: provider.marketData.length,
+                      itemBuilder: (context, index) {
+                        return _MarketDataItem(
+                            item: provider.marketData[index]);
+                      },
                     ),
-                  ),
-                );
-              }
+                  );
+                },
+              ),
+            );
+          },
+        ),
+        // Not sure if this is the best way to handle the snackbar, but it works for now.
+        // Logic is thus: if we have cached data and we have an error, we show the error in a snackbar.
+        const _SnackbarListener(),
+      ],
+    );
+  }
+}
 
-              return RefreshIndicator(
-                onRefresh: () async => provider.loadMarketData(silent: true),
-                child: ListView.separated(
-                  separatorBuilder: (context, index) => const Divider(
-                    height: 1,
-                  ),
-                  itemCount: provider.marketData.length,
-                  itemBuilder: (context, index) {
-                    return _MarketDataItem(item: provider.marketData[index]);
-                  },
-                ),
-              );
-            },
-          ),
-        );
+class _SnackbarListener extends StatelessWidget {
+  const _SnackbarListener();
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<MarketDataProvider, String?>(
+      selector: (_, provider) => provider.snackbarMessage,
+      builder: (context, snackbarMessage, _) {
+        if (snackbarMessage != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(snackbarMessage),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            context.read<MarketDataProvider>().clearSnackbarMessage();
+          });
+        }
+        return const SizedBox.shrink();
       },
     );
   }

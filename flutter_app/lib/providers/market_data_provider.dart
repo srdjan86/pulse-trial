@@ -1,28 +1,41 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:pulsenow_flutter/models/market_data_model.dart';
+import 'package:pulsenow_flutter/services/api_service.dart';
+import 'package:pulsenow_flutter/services/cache_service.dart';
 import 'package:pulsenow_flutter/services/websocket_service.dart';
-import '../services/api_service.dart';
-import '../models/market_data_model.dart';
-import '../utils/exceptions.dart';
+import 'package:pulsenow_flutter/utils/exceptions.dart';
 
 class MarketDataProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   final WebSocketService _webSocketService = WebSocketService();
+  final CacheService _cacheService = CacheService();
 
   List<MarketData> _marketData = [];
   bool _isLoading = false;
   String? _error;
   String? _errorCode;
+  String? _snackbarMessage;
   StreamSubscription<Map<String, dynamic>>? _webSocketSubscription;
 
   List<MarketData> get marketData => _marketData;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get errorCode => _errorCode;
+  String? get snackbarMessage => _snackbarMessage;
 
   void init() {
+    _loadCachedData();
     _connectWebSocket();
     loadMarketData();
+  }
+
+  Future<void> _loadCachedData() async {
+    final cachedData = await _cacheService.loadMarketData();
+    if (cachedData.isNotEmpty) {
+      _marketData = cachedData;
+      notifyListeners();
+    }
   }
 
   Future<void> loadMarketData({bool silent = false}) async {
@@ -32,21 +45,36 @@ class MarketDataProvider with ChangeNotifier {
 
     _error = null;
     _errorCode = null;
+    _snackbarMessage = null;
     notifyListeners();
 
     try {
       final data = await _apiService.getMarketData();
       _marketData = data.map((json) => MarketData.fromJson(json)).toList();
+      _cacheService.saveMarketData(_marketData);
     } on AppException catch (e) {
-      _error = e.message;
-      _errorCode = e.code;
+      if (_marketData.isEmpty) {
+        _error = e.message;
+        _errorCode = e.code;
+      } else {
+        _snackbarMessage = e.message;
+      }
     } catch (e) {
-      _error = 'Failed to load data: ${e.toString()}';
-      _errorCode = 'UNKNOWN';
+      if (_marketData.isEmpty) {
+        _error = 'Failed to load data: ${e.toString()}';
+        _errorCode = 'UNKNOWN';
+      } else {
+        _snackbarMessage = 'Failed to load data: ${e.toString()}';
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void clearSnackbarMessage() {
+    _snackbarMessage = null;
+    notifyListeners();
   }
 
   void _connectWebSocket() {
@@ -63,6 +91,7 @@ class MarketDataProvider with ChangeNotifier {
             } else {
               _marketData.add(data);
             }
+            _cacheService.saveMarketData(_marketData);
             notifyListeners();
           }
         }
